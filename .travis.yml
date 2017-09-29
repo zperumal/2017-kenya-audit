@@ -1,0 +1,22 @@
+language: python
+
+python:
+  - 3.6
+
+matrix:
+  include:
+    - python: 3.6
+      env: RANDOM_SEED=0
+
+install:
+  - pip install coverage
+  - pip install python-coveralls
+  - pip install scipy
+
+
+script:
+  - nosetests --with-coverage --cover-package=kenya ./tests
+
+after_success:
+  - coveralls
+  
