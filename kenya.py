@@ -36,7 +36,7 @@ import csv
 import hashlib
 import numpy as np
 import sys
-
+import argparse
 import opt
 
 
@@ -184,7 +184,7 @@ def read_files():
         print("       ", site_ids_audit[i], counts)
 
         
-def audit():
+def audit(trials):
     """ Read data files and compute probability that each candidate would
         win (in a Bayesian sense) if all sites were to be audited.
     """
@@ -198,7 +198,7 @@ def audit():
     print(sites_in_sample_order)
     # This ordering would need to be printed out and distributed for actual use...
 
-    trials = 1000
+
     printing_wanted = False
     win_count = {}
     for t in range(trials):
@@ -342,8 +342,12 @@ def compute_winner(printing_wanted=False):
         return None
 
 if __name__ == "__main__":
-
+    parser = argparse.ArgumentParser(description='Runs simulation for Kenyan election audit.')
+    parser.add_argument('--n_trials', type=int,
+                        help='Specifies Number of trials to run, default 1000', required=False)
+    parser.set_defaults(n_trials=1000)
+    args = parser.parse_args()
     read_files()    
-    audit()
+    audit(args.n_trials)
 
     
