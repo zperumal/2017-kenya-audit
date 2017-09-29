@@ -11,6 +11,8 @@ matrix:
 install:
   - pip install coverage
   - pip install python-coveralls
+  - pip install scipy
+
 
 script:
   - nosetests --with-coverage --cover-package=kenya ./tests
