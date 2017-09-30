@@ -75,6 +75,16 @@ def random_int(n):
     audit_seed = int(h.hexdigest(), 16)
     return audit_seed % n
 
+def random_float():
+    """ Return random float
+    """
+
+    global audit_seed
+    h = hashlib.sha256()
+    h.update(str(audit_seed).encode())
+    audit_seed = int(h.hexdigest(), 16)
+    random_float = float(".%d" % audit_seed)
+    return random_float
 ##############################################################################
 
 def clean(id):
@@ -87,7 +97,7 @@ def read_sites_csv(sites_file):
         This file should need to be only created once.
     """
 
-    global candidates, site_ids, county_ids, number_voters, counts_34A
+    global candidates, site_ids, county_ids, number_voters, counts_34A, county_site_map, site_to_county_map
     global county_id_s, number_voters_s, counts_34A_s
     
     with open(sites_file) as file:
@@ -112,6 +122,17 @@ def read_sites_csv(sites_file):
                     print("ERROR: repeated site:", item, "count:", c[item])
             sys.exit()
 
+        county_site_map = {}
+        site_to_county_map = {}
+        for row in rows:
+            site_id = clean(row[0])
+            county_id = clean(row[1])
+            site_to_county_map[site_id] = county_id
+            if county_id in county_site_map.keys():
+                county_site_map[county_id].add(site_id)
+            else:
+                county_site_map[county_id] = set([site_id])
+  
         # site attributes as lists, in order given in file
         county_ids = [clean(row[1]) for row in rows]
         number_voters = [int(clean(row[2])) for row in rows]
@@ -231,6 +252,32 @@ def compute_sites_in_sample_order():
         sites_in_sample_order.append(site)
         sites.remove(site)
 
+def pick( county,sites ,g=1, t =4,):
+    if len(sites) < t:
+        return random_pick(sites)
+    else:
+        if random_float() < g:
+            return random_pick(sites)
+        else:
+            return local_pick(county,sites)
+
+def local_pick(county, sites):
+    """
+        Pick a random site in a given county. 
+        @params 
+            county: string -- the county to pick a site from 
+            sites: list the available sites
+        @returns
+            None if no valid choice
+            site if there is a valid choice
+    """
+    #county_site_map: dictionary --of all polling sites by county to set of sites
+    global county_site_map
+    print(county_site_map)
+    if county in county_site_map.keys():
+        # find sites that are in a given county and in the acceptable 'sites'
+        site_options =  list(county_site_map[county].intersection(set(sites)))
+        return random_pick(site_options)
 
 def random_pick(sites):
     """ Pick and return a random site from the list 'sites'.
@@ -253,7 +300,7 @@ def simulate(printing_wanted = False):
         the posterior distribution. Return winner for this trial.
     """
 
-    global candidates, site_ids, number_voters, counts_34A
+    global candidates, site_ids, number_voters, site_to_county_map,counts_34A
     global county_id_s, number_voters_s, counts_34A_s
     global candidates_audit, site_ids_audit, counts_audit
     global counts_audit_s
@@ -276,7 +323,7 @@ def simulate(printing_wanted = False):
         else:
             # pick random x-to-y matrix (Polya urn style)
             # apply it to get estimate of audit (video) counts
-            picked_site = random_pick(sites_considered)
+            picked_site = pick(site_to_county_map[site],sites_considered)
             # no prior here -- this is 'empirical bayes'
             matrix_s[site] = matrix_s[picked_site]
             audit_tallies[site] = matrix_s[site].dot(counts_34A_s[site])
