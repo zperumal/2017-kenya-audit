@@ -81,7 +81,7 @@ def clean(id):
     return id.strip()
 
 
-def read_sites_csv():
+def read_sites_csv(sites_file):
     """ Read the sites.csv file.
     
         This file should need to be only created once.
@@ -90,7 +90,7 @@ def read_sites_csv():
     global candidates, site_ids, county_ids, number_voters, counts_34A
     global county_id_s, number_voters_s, counts_34A_s
     
-    with open("sites.csv") as file:
+    with open(sites_file) as file:
         reader = csv.reader(file)
         rows = [row for row in reader]
         fieldnames = rows[0]
@@ -128,7 +128,7 @@ def read_sites_csv():
     return 
 
 
-def read_audit_csv():
+def read_audit_csv(audit_file):
     """ Read audit.csv file
 
         This file is appended to every time a site is audited.
@@ -139,7 +139,7 @@ def read_audit_csv():
     global candidates_audit, site_ids_audit, counts_audit
     global counts_audit_s
 
-    with open("audit.csv") as file:
+    with open(audit_file) as file:
         reader = csv.reader(file)
         rows = [row for row in reader]
         fieldnames = rows[0]
@@ -157,13 +157,13 @@ def read_audit_csv():
 
         return 
 
-def read_files():
+def read_files(sites_file, audit_file):
     
     global candidates, site_ids, county_ids, number_voters, counts_34A
     global county_id_s, number_voters_s, counts_34A_s
     global candidates_audit, site_ids_audit, counts_audit
 
-    read_sites_csv()
+    read_sites_csv(sites_file)
     print("Form 34A data:")
     print("    Candidates (34A):\n        {}".format(candidates))
     print("    Site ids:\n        {}".format(site_ids))
@@ -174,7 +174,7 @@ def read_files():
         counts = counts_34A[i]
         print("       ", site_ids[i], counts)
 
-    read_audit_csv()
+    read_audit_csv(audit_file)
     print("Audit (video) data:")
     print("    Candidates (audit):\n        {}".format(candidates_audit))
     assert candidates == candidates_audit
@@ -183,6 +183,7 @@ def read_files():
         counts = counts_audit[i]
         print("       ", site_ids_audit[i], counts)
 
+    return counts
         
 def audit(trials):
     """ Read data files and compute probability that each candidate would
@@ -215,7 +216,7 @@ def audit(trials):
               .format(winner, win_count[winner], 100*win_count[winner]/trials))
     risk = 100*min(win_count.values())/trials
     print("    Residual risk: {:0.1f}%".format(risk))
-
+    return win_count
 def compute_sites_in_sample_order():
     """ Based on random number seed.
     """
@@ -345,9 +346,26 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Runs simulation for Kenyan election audit.')
     parser.add_argument('--n_trials', type=int,
                         help='Specifies Number of trials to run, default 1000', required=False)
+    parser.add_argument('--sites_file', type=str,
+                        help="""(1) A CSV file  default 'sites.csv' that gives, for each site (polling-site):
+        (a) its 'Polling Site ID'
+        (b) its 'County ID'
+        (c) the number of registered voters for that pollsite 'Number voters'
+        (d) the number voting for each candidate according to form 34A.""", required=False)
+    parser.add_argument('--audit_file', type=str,
+                        help="""2 A CSV file default 'audit.csv' that gives, for the sampled sites:
+        (a) its 'Polling Site ID'
+        (b) the number voting for each candidate in the photo/video.
+       (Here "sampled" means obtaining the counts from the photo/video evidence.)""", required=False)
+
+    parser.set_defaults(sites_file='sites.csv')
+    parser.set_defaults(audit_file= 'audit.csv')
     parser.set_defaults(n_trials=1000)
     args = parser.parse_args()
-    read_files()    
-    audit(args.n_trials)
-
+    #read_files(args.sites_file, args.audit_file)    
+    #audit(args.n_trials)
+    counts = read_files(args.sites_file, args.audit_file)     
+    win_counts = audit(args.n_trials)
+    print(counts)
+    print(win_counts)
     
