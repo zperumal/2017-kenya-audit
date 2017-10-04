@@ -40,6 +40,7 @@ import argparse
 import opt
 
 
+
 ##############################################################################
 ## global variables
 
@@ -63,6 +64,7 @@ counts_audit_s = {}             # audit counts by site
 audit_seed = 0                  # initial value should be set from 24 decimal dice
                                 # rolled at public ceremony AFTER sites.csv
                                 # is created and published.
+np.random.seed(audit_seed)
 
 def random_int(n):
     """ Return the next random integer modulo n.
@@ -74,17 +76,7 @@ def random_int(n):
     h.update(str(audit_seed).encode())
     audit_seed = int(h.hexdigest(), 16)
     return audit_seed % n
-
-def random_float():
-    """ Return random float
-    """
-
-    global audit_seed
-    h = hashlib.sha256()
-    h.update(str(audit_seed).encode())
-    audit_seed = int(h.hexdigest(), 16)
-    random_float = float(".%d" % audit_seed)
-    return random_float
+    
 ##############################################################################
 
 def clean(id):
@@ -256,7 +248,7 @@ def pick( county,sites ,g=1, t =4,):
     if len(sites) < t:
         return random_pick(sites)
     else:
-        if random_float() < g:
+        if np.random.uniform(0.0, 1.0) < g:
             return random_pick(sites)
         else:
             return local_pick(county,sites)

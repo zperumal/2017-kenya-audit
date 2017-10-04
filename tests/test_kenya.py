@@ -7,7 +7,7 @@ def test_kenya_default():
     expected_counts = [400, 300]
     counts = kenya.read_files(sites_file, audit_file)
     assert(counts==expected_counts)
-    expected_audit_win_counts = {'Gnu': 629, None: 371}  
+    expected_audit_win_counts = {'Gnu': 613, None: 387}  
     audit_win_counts = kenya.audit(n_trials)
     assert(expected_audit_win_counts == audit_win_counts)
     
@@ -42,15 +42,18 @@ def test_pick():
     
     
     #global case
-    expected_global_pick ='site002'
-    pick =  kenya.pick('county002',['site002','site005','site003'], g =1)
-    assert(expected_global_pick == pick)
-    #global case g = 0 but  t > candidates
-    
-    pick =  kenya.pick('county002',['site002','site005','site003'], t= 4, g =0)
-    assert(expected_global_pick == pick)
-    #local_case g = 0 and t < candidates
+    expected_pick ='site005'
+    pick =  kenya.pick('county002',['site002','site005','site003'],  t= 1,g =1)
+    assert(expected_pick == pick)
 
-    expected_local_pick ='site005'
+    
+    #global case g = 0 but  t > candidates
+    expected_pick ='site002'
+    pick =  kenya.pick('county002',['site002','site005','site003'], t= 4, g =0)
+    
+    assert(expected_pick == pick)
+
+    #local_case g = 0 and t < candidates
+    expected_pick ='site005'
     pick =  kenya.pick('county002',['site002','site005','site003'], t= 1, g =0)
-    assert(expected_local_pick == pick)
+    assert(expected_pick == pick)
