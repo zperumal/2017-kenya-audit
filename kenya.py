@@ -238,11 +238,22 @@ def compute_sites_in_sample_order():
     global sites_in_sample_order
 
     sites_in_sample_order = []
-    sites = site_ids.copy()
-    while len(sites)>0:
-        site = random_pick(sites)
+    #Do sites that we have results for first. 
+    audit_sites = site_ids_audit.copy()
+    audit_site_total_size = sum([number_voters_s[site] for site in audit_sites])
+    while len(audit_sites)>0:
+        site = random_pick(audit_sites)
         sites_in_sample_order.append(site)
-        sites.remove(site)
+        audit_sites.remove(site)
+        audit_site_total_size -= number_voters_s[site]
+
+    non_audit_sites = set(site_ids.copy()) -set(site_ids_audit)
+    non_audit_site_total_size = sum([number_voters_s[site] for site in non_audit_sites])
+    while len(non_audit_sites)>0:
+        site = random_pick(non_audit_sites)
+        sites_in_sample_order.append(site)
+        non_audit_sites.remove(site)
+        non_audit_site_total_size -= number_voters_s[site]
 
 def pick( county,sites ,g=1, t =4,):
     if len(sites) < t:
