@@ -240,24 +240,11 @@ def compute_sites_in_sample_order():
     sites_in_sample_order = []
     #Do sites that we have results for first. 
     audit_sites = site_ids_audit.copy()
-    audit_cumulative_size = np.array([number_voters_s[site] for site in audit_sites])
-    audit_site_total_size = sum(audit_cumulative_size)
-    while audit_site_total_size>0:
-        site_index, site = random_pick(audit_sites,audit_site_total_size,audit_cumulative_size/float(audit_site_total_size))
-        sites_in_sample_order.append(site)
-        audit_cumulative_size[site_index] = 0.0
-        #audit_sites.remove(site)
-        audit_site_total_size -= number_voters_s[site]
-
+    audit_sites.sort(key=lambda site: number_voters_s[site])
     non_audit_sites = list(set(site_ids.copy()) -set(site_ids_audit))
-    non_audit_cumulative_size = np.array([number_voters_s[site] for site in non_audit_sites])
-    non_audit_site_total_size = sum(non_audit_cumulative_size)
-    while non_audit_site_total_size>0:
-        site_index, site = random_pick(non_audit_sites,non_audit_site_total_size,non_audit_cumulative_size/float(non_audit_site_total_size))
-        sites_in_sample_order.append(site)
-        #non_audit_sites.remove(site)
-        non_audit_cumulative_size[site_index] = 0
-        non_audit_site_total_size -= number_voters_s[site]
+    non_audit_sites.sort(key=lambda site: number_voters_s[site])
+    sites_in_sample_order =  audit_sites + non_audit_sites
+
 
 def pick( county,sites ,total_size,cumulative_site_voter_size,g=1, t =4,):
     if len(sites) < t:
