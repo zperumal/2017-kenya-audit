@@ -39,6 +39,7 @@ import sys
 import argparse
 import opt
 
+import math
 
 
 ##############################################################################
@@ -58,6 +59,7 @@ counts_34A_s = {}               # form 34A counts by site
 
 counts_audit_s = {}             # audit counts by site
 
+site_ballot_array= []
 ##############################################################################
 ## random integers
 
@@ -235,7 +237,8 @@ def compute_sites_in_sample_order():
     """
 
     global site_ids
-    global sites_in_sample_order
+    global sites_in_sample_order 
+    global site_ballot_array
 
     sites_in_sample_order = []
     #Do sites that we have results for first. 
@@ -244,14 +247,24 @@ def compute_sites_in_sample_order():
     non_audit_sites = list(set(site_ids.copy()) -set(site_ids_audit))
     non_audit_sites.sort(key=lambda site: number_voters_s[site])
     sites_in_sample_order =  audit_sites + non_audit_sites
-
-
-def pick( county,sites ,total_size,cumulative_site_voter_size,g=1, t =4,):
+    
+    #initialize ballot count
+    initial_size = math.ceil(sum(number_voters) / 10.0)
+    site_ballot_array = np.empty(initial_size)
+    last_index = 0
+    for i,site in enumerate(sites_in_sample_order):
+        size = number_voters_s[site]
+        next_index = int(math.ceil(last_index + size/10.0))
+        site_ballot_array[last_index:next_index] = i
+        last_index = next_index
+    site_ballot_array = site_ballot_array[0:last_index+1]
+def pick( county,sites ,current_index,g=1, t =4,):
+    #current_index
     if len(sites) < t:
-        return random_pick(sites,total_size,cumulative_site_voter_size)[1]
+        return random_pick(sites,current_index)
     else:
         if np.random.uniform(0.0, 1.0) < g:
-            return random_pick(sites,total_size,cumulative_site_voter_size)[1]
+            return random_pick(sites,current_index)
         else:
             return local_pick(county,sites)
 
@@ -272,25 +285,14 @@ def local_pick(county, sites):
         site_options =  list(county_site_map[county].intersection(set(sites)))
         return random_pick(site_options)
 
-def random_pick(sites,total_size,cumulative_site_voter_size):
+def random_pick(sites,current_index):
     """ Pick and return a random site from the list 'sites'.
         The probability of picking a site is proportional to its size.
     """
-
-    global number_voters_s 
-    picked_index =  np.random.choice(len(sites),p=cumulative_site_voter_size)
-    picked_site = sites[picked_index]
-    return (picked_index, picked_site)
-    """
-    picked_index = random_int(total_size)
-    size_so_far = 0
-    for i, site in enumerate(sites):
-        size_so_far += number_voters_s[site]
-        if picked_index < size_so_far:
-            return site
-    """
-
-
+    #draw from discrete unifrom np.random.randomint()
+    global site_ballot_array
+    index  = np.random.randint(0,current_index-1)
+    return sites[int(site_ballot_array[index])]
 def simulate(printing_wanted = False):        
     """ Run one trial of a Bayesian simulation of drawing from
         the posterior distribution. Return winner for this trial.
@@ -308,7 +310,11 @@ def simulate(printing_wanted = False):
     total_size = 0
     cumulative_size = np.array([])
     matrix_s = {}
+    current_index = 0 
+
     for site in sites_in_sample_order:
+        size = number_voters_s[site]
+
         if site in site_ids_audit:
             # already have it
             matrix_s[site] = opt.find_A(counts_34A_s[site],
@@ -318,9 +324,10 @@ def simulate(printing_wanted = False):
                 print("Did:", site, "Tally:", counts_34A_s[site], audit_tallies[site])
                 print(matrix_s[site])
         else:
+
             # pick random x-to-y matrix (Polya urn style)
             # apply it to get estimate of audit (video) counts
-            picked_site = pick(site_to_county_map[site],sites_considered,total_size,cumulative_site_voter_size=cumulative_size/float(total_size))
+            picked_site = pick(site_to_county_map[site],sites_considered,current_index)
             # no prior here -- this is 'empirical bayes'
             matrix_s[site] = matrix_s[picked_site]
             audit_tallies[site] = matrix_s[site].dot(counts_34A_s[site])
@@ -329,10 +336,10 @@ def simulate(printing_wanted = False):
             if printing_wanted:
                 print("New:", site, "Tally:", counts_34A_s[site], audit_tallies[site])
                 print(matrix_s[site])
-        site_size = number_voters_s[site]
-        total_size += site_size
+
+        current_index = int(current_index + round( size/10.0))
+       
         sites_considered.append(site)
-        cumulative_size = np.append(cumulative_size,site_size)
 
     # compute winner from audit (video) tallies
     winner = compute_winner()
